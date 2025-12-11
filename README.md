@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
   # Uniमित्र Mobile App Design
 
@@ -9,3 +10,6 @@
 
   Run `npm run dev` to start the development server.
   
+=======
+# UNIMITR-
+>>>>>>> e02bf2f124158099219b3c8eae6c3f90132f06dc
