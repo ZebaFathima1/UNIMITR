@@ -13,9 +13,9 @@ class InternshipSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'company', 'description', 'requirements', 
             'location', 'internshipType', 'durationMonths', 'stipend', 
-            'applicationDeadline', 'category', 'status', 'bannerUrl', 'created_at'
+            'applicationDeadline', 'category', 'status', 'bannerUrl', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class InternshipApplicationSerializer(serializers.ModelSerializer):

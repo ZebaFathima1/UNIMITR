@@ -1,45 +1,60 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Trophy, Star, Award, Crown, ArrowLeft } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Avatar, AvatarFallback } from './ui/avatar';
+
+interface LeaderboardEntry {
+  id: number;
+  rank: number;
+  name: string;
+  university?: string;
+  points: number;
+  avatar: string;
+  emoji: string;
+  isUniversity?: boolean;
+}
 
 interface LeaderboardScreenProps {
   onBack: () => void;
 }
 
 export default function LeaderboardScreen({ onBack }: LeaderboardScreenProps) {
-  const [activeTab, setActiveTab] = useState('university');
+  const [activeTab, setActiveTab] = useState('global');
+  const [globalLeaderboard, setGlobalLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [universityLeaderboard, setUniversityLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [friendsLeaderboard, setFriendsLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const confettiColors = ['#F33A6A', '#00B7EB', '#FFC107', '#8B5CF6'];
 
-  const globalLeaderboard = [
-    { rank: 1, name: 'Arjun Mehta', university: 'MIT', points: 2350, avatar: 'AM', badge: <Crown className="w-5 h-5 text-yellow-500" />, icon: '👑' },
-    { rank: 2, name: 'Priya Sharma', university: 'SRU', points: 2100, avatar: 'PS', badge: <Trophy className="w-5 h-5 text-gray-400" />, icon: '🥈' },
-    { rank: 3, name: 'Rohan Patel', university: 'Harvard', points: 1980, avatar: 'RP', badge: <Award className="w-5 h-5 text-orange-600" />, icon: '🥉' },
-    { rank: 4, name: 'Sneha Kumar', university: 'Stanford', points: 1850, avatar: 'SK', icon: '⭐' },
-    { rank: 5, name: 'Vikram Singh', university: 'Oxford', points: 1720, avatar: 'VS', icon: '⭐' },
-    { rank: 6, name: 'Ananya Reddy', university: 'Cambridge', points: 1680, avatar: 'AR', icon: '⭐' },
-    { rank: 7, name: 'Karan Gupta', university: 'Yale', points: 1650, avatar: 'KG', icon: '⭐' },
-    { rank: 8, name: 'Neha Verma', university: 'Princeton', points: 1620, avatar: 'NV', icon: '⭐' },
-  ];
-
-  const universityLeaderboard = [
-    { rank: 1, name: 'SRU', university: 'SR University', points: 8250, avatar: 'SRU', badge: <Crown className="w-5 h-5 text-yellow-500" />, icon: '👑', isUniversity: true },
-    { rank: 2, name: 'KITS', university: 'Kakatiya Institute', points: 7100, avatar: 'KITS', badge: <Trophy className="w-5 h-5 text-gray-400" />, icon: '🥈', isUniversity: true },
-    { rank: 3, name: 'VAAGDEVI', university: 'Vaagdevi College', points: 6980, avatar: 'VAG', badge: <Award className="w-5 h-5 text-orange-600" />, icon: '🥉', isUniversity: true },
-    { rank: 4, name: 'CMR', university: 'CMR Engineering', points: 6450, avatar: 'CMR', icon: '⭐', isUniversity: true },
-    { rank: 5, name: 'JNTUH', university: 'JNTU Hyderabad', points: 6120, avatar: 'JNTU', icon: '⭐', isUniversity: true },
-  ];
-
-  const friendsLeaderboard = [
-    { rank: 1, name: 'Priya Sharma', points: 1450, avatar: 'PS', badge: <Crown className="w-5 h-5 text-yellow-500" />, icon: '👑' },
-    { rank: 2, name: 'Arjun Patel', points: 1200, avatar: 'AP', badge: <Trophy className="w-5 h-5 text-gray-400" />, icon: '🥈' },
-    { rank: 3, name: 'Sneha Reddy', points: 1080, avatar: 'SR', badge: <Award className="w-5 h-5 text-orange-600" />, icon: '🥉' },
-    { rank: 4, name: 'Rahul Kumar', points: 950, avatar: 'RK', icon: '⭐' },
-    { rank: 5, name: 'Ananya Singh', points: 820, avatar: 'AS', icon: '⭐' },
-    { rank: 6, name: 'Vikram Gupta', points: 780, avatar: 'VG', icon: '⭐' },
-  ];
+  useEffect(() => {
+    // Fetch all three categories
+    const fetchLeaderboards = async () => {
+      setLoading(true);
+      try {
+        const [globalRes, universityRes, friendsRes] = await Promise.all([
+          fetch('/api/auth/leaderboard/?category=global'),
+          fetch('/api/auth/leaderboard/?category=university'),
+          fetch('/api/auth/leaderboard/?category=friends'),
+        ]);
+        
+        const globalData = await globalRes.json();
+        const universityData = await universityRes.json();
+        const friendsData = await friendsRes.json();
+        
+        setGlobalLeaderboard(globalData);
+        setUniversityLeaderboard(universityData);
+        setFriendsLeaderboard(friendsData);
+      } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchLeaderboards();
+  }, []);
 
   const getLeaderboardData = () => {
     switch (activeTab) {
@@ -50,8 +65,22 @@ export default function LeaderboardScreen({ onBack }: LeaderboardScreenProps) {
       case 'friends':
         return friendsLeaderboard;
       default:
-        return universityLeaderboard;
+        return globalLeaderboard;
     }
+  };
+
+  const getRankIcon = (rank: number, emoji: string) => {
+    if (rank === 1) return '👑';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return emoji || '⭐';
+  };
+
+  const getRankBadge = (rank: number) => {
+    if (rank === 1) return <Crown className="w-5 h-5 text-yellow-500" />;
+    if (rank === 2) return <Trophy className="w-5 h-5 text-gray-400" />;
+    if (rank === 3) return <Award className="w-5 h-5 text-orange-600" />;
+    return null;
   };
 
   return (
@@ -124,9 +153,14 @@ export default function LeaderboardScreen({ onBack }: LeaderboardScreenProps) {
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-0 space-y-3">
-          {getLeaderboardData().map((user, idx) => (
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">Loading...</div>
+          ) : getLeaderboardData().length === 0 ? (
+            <div className="text-center py-8 text-gray-500">No leaderboard entries yet</div>
+          ) : (
+            getLeaderboardData().map((user, idx) => (
             <motion.div
-              key={user.rank}
+              key={user.id || user.rank}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}
@@ -143,7 +177,7 @@ export default function LeaderboardScreen({ onBack }: LeaderboardScreenProps) {
                     user.rank === 3 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' :
                     'bg-purple-100 text-purple-600'
                   }`}>
-                    {user.rank <= 3 ? user.icon : `#${user.rank}`}
+                    {user.rank <= 3 ? getRankIcon(user.rank, user.emoji) : `#${user.rank}`}
                   </div>
                 </div>
 
@@ -155,8 +189,8 @@ export default function LeaderboardScreen({ onBack }: LeaderboardScreenProps) {
                 {/* User Info */}
                 <div className="flex-1">
                   <h4 className="text-gray-800">{user.name}</h4>
-                  {'university' in user && !('isUniversity' in user) && (
-                    <p className="text-gray-500 text-sm">{String((user as any).university)}</p>
+                  {user.university && !user.isUniversity && (
+                    <p className="text-gray-500 text-sm">{user.university}</p>
                   )}
                   <div className="flex items-center gap-1 text-purple-600">
                     <Star className="w-4 h-4 fill-purple-600" />
@@ -165,10 +199,11 @@ export default function LeaderboardScreen({ onBack }: LeaderboardScreenProps) {
                 </div>
 
                 {/* Badge for top 3 */}
-                {user.rank <= 3 && user.badge}
+                {user.rank <= 3 && getRankBadge(user.rank)}
               </div>
             </motion.div>
-          ))}
+          ))
+          )}
         </TabsContent>
       </Tabs>
     </div>

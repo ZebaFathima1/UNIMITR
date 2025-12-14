@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { X, Trophy, Award, QrCode, Settings, LogOut, User, Sparkles, Activity } from 'lucide-react';
+import { X, Trophy, Award, QrCode, Settings, LogOut, User, Sparkles, Activity, ClipboardList } from 'lucide-react';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { Badge } from './ui/badge';
 
@@ -30,6 +30,13 @@ export default function ProfileDrawer({ onClose, onLogout, onNavigate, userName 
       onClick: () => onNavigate('digitaltwin'),
       color: 'text-pink-600',
       hoverColor: 'hover:bg-pink-50'
+    },
+    { 
+      icon: ClipboardList, 
+      label: 'My Applications', 
+      onClick: () => onNavigate('myapplications'),
+      color: 'text-indigo-600',
+      hoverColor: 'hover:bg-indigo-50'
     },
     { 
       icon: Trophy, 

@@ -1,39 +1,53 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, BookOpen, Mail, Phone, Users, GraduationCap, CreditCard, Sparkles } from 'lucide-react';
+import { X, BookOpen, Mail, Phone, Users, GraduationCap, CreditCard, Sparkles, Loader2, FileText } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
+import { registerForWorkshop } from '../lib/api';
 
 interface WorkshopRegistrationFormProps {
+  workshopId: number;
   workshopName: string;
   price: string;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export default function WorkshopRegistrationForm({ workshopName, price, onClose }: WorkshopRegistrationFormProps) {
+export default function WorkshopRegistrationForm({ workshopId, workshopName, price, onClose, onSuccess }: WorkshopRegistrationFormProps) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    branch: '',
-    year: '',
-    experience: '',
-    paymentMethod: '',
+    studentId: '',
+    expectations: '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
+      await registerForWorkshop(workshopId, {
+        fullName: formData.name,
+        email: formData.email,
+        studentId: formData.studentId,
+        phone: formData.phone,
+        expectations: formData.expectations,
+      });
+      
       toast.success(`Registration Successful!`, {
         description: `You're enrolled in ${workshopName}. Check your email for workshop details.`,
       });
-      setIsSubmitting(false);
+      if (onSuccess) onSuccess();
       onClose();
-    }, 1500);
+    } catch (error: any) {
+      console.error('Error registering:', error);
+      toast.error(error.response?.data?.detail || 'Failed to register. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -156,120 +170,54 @@ export default function WorkshopRegistrationForm({ workshopName, price, onClose 
             </div>
           </motion.div>
 
-          {/* Branch & Year */}
-          <div className="grid grid-cols-2 gap-4">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <label className="block text-gray-700 font-semibold mb-2">
-                Branch <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <select
-                  required
-                  value={formData.branch}
-                  onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                  className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-cyan-400 focus:outline-none transition-colors appearance-none bg-white"
-                >
-                  <option value="">Select Branch</option>
-                  <option value="CSE">Computer Science</option>
-                  <option value="IT">Information Technology</option>
-                  <option value="ECE">Electronics</option>
-                  <option value="ME">Mechanical</option>
-                  <option value="CE">Civil</option>
-                  <option value="EE">Electrical</option>
-                </select>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <label className="block text-gray-700 font-semibold mb-2">
-                Year <span className="text-red-500">*</span>
-              </label>
-              <select
-                required
-                value={formData.year}
-                onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-cyan-400 focus:outline-none transition-colors appearance-none bg-white"
-              >
-                <option value="">Select Year</option>
-                <option value="1">1st Year</option>
-                <option value="2">2nd Year</option>
-                <option value="3">3rd Year</option>
-                <option value="4">4th Year</option>
-              </select>
-            </motion.div>
-          </div>
-
-          {/* Experience Level */}
+          {/* Student ID */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
+            transition={{ delay: 0.4 }}
           >
             <label className="block text-gray-700 font-semibold mb-2">
-              Experience Level <span className="text-red-500">*</span>
+              Student ID <span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-3 gap-3">
-              {['Beginner', 'Intermediate', 'Advanced'].map((level) => (
-                <motion.button
-                  key={level}
-                  type="button"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setFormData({ ...formData, experience: level })}
-                  className={`py-3 px-4 rounded-xl border-2 transition-all ${
-                    formData.experience === level
-                      ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
-                      : 'border-gray-200 hover:border-cyan-300'
-                  }`}
-                >
-                  {level}
-                </motion.button>
-              ))}
+            <div className="relative">
+              <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                required
+                value={formData.studentId}
+                onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
+                className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-cyan-400 focus:outline-none transition-colors"
+                placeholder="Enter your student ID"
+              />
             </div>
           </motion.div>
 
-          {/* Payment Method */}
-          {price !== 'Free' && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.7 }}
-            >
-              <label className="block text-gray-700 font-semibold mb-2">
-                Payment Method <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <select
-                  required={price !== 'Free'}
-                  value={formData.paymentMethod}
-                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                  className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-cyan-400 focus:outline-none transition-colors appearance-none bg-white"
-                >
-                  <option value="">Select Payment Method</option>
-                  <option value="upi">UPI</option>
-                  <option value="card">Credit/Debit Card</option>
-                  <option value="netbanking">Net Banking</option>
-                  <option value="wallet">Digital Wallet</option>
-                </select>
-              </div>
-            </motion.div>
-          )}
+          {/* Expectations */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <label className="block text-gray-700 font-semibold mb-2">
+              What do you expect to learn?
+            </label>
+            <div className="relative">
+              <FileText className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+              <textarea
+                value={formData.expectations}
+                onChange={(e) => setFormData({ ...formData, expectations: e.target.value })}
+                className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-cyan-400 focus:outline-none transition-colors resize-none"
+                rows={3}
+                placeholder="Tell us what you hope to learn from this workshop..."
+              />
+            </div>
+          </motion.div>
 
           {/* Submit Button */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
+            transition={{ delay: 0.6 }}
             className="pt-4"
           >
             <Button
@@ -278,21 +226,14 @@ export default function WorkshopRegistrationForm({ workshopName, price, onClose 
               className="w-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 hover:from-cyan-600 hover:via-blue-600 hover:to-purple-700 text-white py-6 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transition-all relative overflow-hidden group"
             >
               {isSubmitting ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  className="w-6 h-6 border-3 border-white border-t-transparent rounded-full"
-                />
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Registering...
+                </span>
               ) : (
                 <>
                   <Sparkles className="w-5 h-5 mr-2 inline" />
                   {price === 'Free' ? 'Register Now' : `Pay ${price} & Register`}
-                  <motion.div
-                    className="absolute inset-0 bg-white/20"
-                    initial={{ x: '-100%' }}
-                    whileHover={{ x: '100%' }}
-                    transition={{ duration: 0.5 }}
-                  />
                 </>
               )}
             </Button>

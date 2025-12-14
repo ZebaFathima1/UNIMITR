@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import StickyNavbar from './components/StickyNavbar';
 import LandingPage from './components/LandingPage';
 import LoginScreen from './components/LoginScreen';
+import AdminLoginScreen from './components/AdminLoginScreen';
 import StudentDashboard from './components/StudentDashboard';
 import ClubsPage from './components/ClubsPage';
 import EventsPage from './components/EventsPage';
@@ -20,56 +21,100 @@ import CreateEventScreen from './components/CreateEventScreen';
 import UploadBannerScreen from './components/UploadBannerScreen';
 import EditEventsScreen from './components/EditEventsScreen';
 import ViewRequestsScreen from './components/ViewRequestsScreen';
+import MyApplicationsPage from './components/MyApplicationsPage';
+import MentalHealthScreen from './components/MentalHealthScreen';
 import { Toaster } from './components/ui/sonner';
-import { login as apiLogin, signup as apiSignup, setAuthHeaders } from './lib/api';
+import { login as apiLogin, signup as apiSignup, setAuthHeaders, getUserActivityStats, type UserActivityStats } from './lib/api';
 import { toast } from 'sonner';
 
 import type { Screen, UserRole } from './types';
 
+// URL to Screen mapping
+const getScreenFromPath = (): Screen => {
+  const path = window.location.pathname.toLowerCase();
+  if (path === '/admin' || path === '/admin/') return 'admin';
+  if (path === '/events' || path === '/events/') return 'events';
+  if (path === '/clubs' || path === '/clubs/') return 'clubs';
+  if (path === '/workshops' || path === '/workshops/') return 'workshops';
+  if (path === '/volunteering' || path === '/volunteering/') return 'volunteering';
+  if (path === '/internships' || path === '/internships/') return 'internships';
+  if (path === '/login' || path === '/login/') return 'login';
+  if (path === '/dashboard' || path === '/dashboard/') return 'dashboard';
+  return 'home';
+};
+
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [currentScreen, setCurrentScreen] = useState<Screen>(getScreenFromPath);
   const [screenHistory, setScreenHistory] = useState<Screen[]>([]);
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userName, setUserName] = useState('SRU');
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [isDark, setIsDark] = useState<boolean>(false);
+  const [userActivity, setUserActivity] = useState<UserActivityStats>({
+    eventsAttended: 0,
+    volunteeringHours: 0,
+    workshopsCompleted: 0,
+    challengesCompleted: 0,
+  });
 
-  // Theme init and persistence
+  // Fetch user activity stats when user logs in
   useEffect(() => {
-    const saved = localStorage.getItem('theme');
-    // Force dark as default when no saved preference exists
-    const initialDark = saved ? saved === 'dark' : true;
-    setIsDark(initialDark);
-    if (initialDark) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-    if (!saved) localStorage.setItem('theme', initialDark ? 'dark' : 'light');
+    if (userEmail) {
+      getUserActivityStats(userEmail)
+        .then(stats => setUserActivity(stats))
+        .catch(() => {
+          // If API fails, keep defaults
+          console.log('Could not fetch user activity stats');
+        });
+    }
+  }, [userEmail]);
 
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = (e: MediaQueryListEvent) => {
-      const current = localStorage.getItem('theme');
-      // Only react to system changes if the user has not set a preference
-      if (!current) {
-        if (e.matches) document.documentElement.classList.add('dark');
-        else document.documentElement.classList.remove('dark');
-        setIsDark(e.matches);
-      }
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentScreen(getScreenFromPath());
     };
-    mq.addEventListener?.('change', onChange);
-    return () => mq.removeEventListener?.('change', onChange);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const setTheme = (next: boolean) => {
-    setIsDark(next);
-    if (next) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+  // Update URL when screen changes
+  useEffect(() => {
+    const screenToPath: Record<Screen, string> = {
+      home: '/',
+      splash: '/',
+      login: '/login',
+      dashboard: '/dashboard',
+      clubs: '/clubs',
+      events: '/events',
+      workshops: '/workshops',
+      volunteering: '/volunteering',
+      internships: '/internships',
+      admin: '/admin',
+      leaderboard: '/leaderboard',
+      gamification: '/gamification',
+      qrscanner: '/qrscanner',
+      settings: '/settings',
+      digitaltwin: '/digitaltwin',
+      createevent: '/admin',
+      uploadbanner: '/admin',
+      editevents: '/admin',
+      viewrequests: '/admin',
+      myapplications: '/my-applications',
+      mentalhealth: '/mental-health',
+    };
+    
+    const targetPath = screenToPath[currentScreen] || '/';
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({}, '', targetPath);
     }
-  };
-  const toggleTheme = () => setTheme(!isDark);
+  }, [currentScreen]);
+
+  // Theme init - Force light mode only (no dark mode)
+  useEffect(() => {
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('theme', 'light');
+  }, []);
 
   const handleLogin = async (payload: { role: 'student' | 'admin'; email: string; name?: string; password?: string; isSignup?: boolean }) => {
     try {
@@ -108,10 +153,17 @@ export default function App() {
         password: payload.password 
       });
       
-      setAuthHeaders(payload.role, payload.email);
+      // Use actual email from response if available, otherwise fallback to payload
+      const actualEmail = response.user?.email || payload.email;
+      
+      setAuthHeaders(payload.role, actualEmail);
       setUserRole(payload.role);
-      setUserEmail(payload.email);
+      setUserEmail(actualEmail);
       setUserName(response.user?.first_name || payload.name || 'User');
+      
+      // Store BOTH username and email in localStorage for profile persistence
+      localStorage.setItem('userEmail', actualEmail);
+      localStorage.setItem('userName', payload.email); // This is the username used to login
       
       // Rely on backend to determine admin/staff privileges; do not override on client
       
@@ -168,7 +220,11 @@ export default function App() {
       case 'internships':
         return <PlacementsPage />;
       case 'admin':
-        return <AdminDashboard onNavigate={handleNavigation} />;
+        // Show admin login if not logged in as admin
+        if (userRole !== 'admin') {
+          return <AdminLoginScreen onLogin={handleLogin} />;
+        }
+        return <AdminDashboard onNavigate={handleNavigation} onLogout={handleLogout} />;
       case 'leaderboard':
         return <LeaderboardScreen onBack={handleBack} />;
       case 'gamification':
@@ -176,17 +232,14 @@ export default function App() {
       case 'qrscanner':
         return <QRScannerScreen onBack={handleBack} />;
       case 'settings':
-        return <SettingsScreen onBack={handleBack} darkMode={isDark} onToggleDarkMode={setTheme} />;
+        return <SettingsScreen onBack={handleBack} onLogout={handleLogout} userEmail={userEmail || ''} userName={userName} />;
       case 'digitaltwin':
         return (
           <DigitalTwinScreen
             onBack={handleBack}
             userName={userName}
             userActivity={{
-              eventsAttended: 12,
-              volunteeringHours: 8,
-              workshopsCompleted: 5,
-              challengesCompleted: 4,
+              ...userActivity,
               lastActive: new Date(),
             }}
           />
@@ -199,12 +252,17 @@ export default function App() {
         return <EditEventsScreen onBack={handleBack} />;
       case 'viewrequests':
         return <ViewRequestsScreen onBack={handleBack} />;
+      case 'myapplications':
+        return <MyApplicationsPage onBack={handleBack} />;
+      case 'mentalhealth':
+        return <MentalHealthScreen onBack={handleBack} userEmail={userEmail} />;
       default:
         return <LandingPage onGetStarted={() => setCurrentScreen('login')} />;
     }
   };
 
-  const showNavbar = currentScreen !== 'login' && currentScreen !== 'home' && currentScreen !== 'splash' && !drawerOpen;
+  // Hide navbar on login, home, splash, admin dashboard, and when drawer is open
+  const showNavbar = currentScreen !== 'login' && currentScreen !== 'home' && currentScreen !== 'splash' && currentScreen !== 'admin' && !drawerOpen;
 
   return (
     <div className={
@@ -238,15 +296,6 @@ export default function App() {
           onProfileClick={() => setDrawerOpen(true)}
         />
       )}
-
-      {/* Floating theme toggle */}
-      <button
-        onClick={toggleTheme}
-        title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-        className="fixed bottom-6 right-6 z-50 inline-flex items-center justify-center w-11 h-11 rounded-full shadow-lg border border-slate-200/60 bg-white text-slate-700 hover:scale-105 transition active:scale-95 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
-      >
-        {isDark ? '☀️' : '🌙'}
-      </button>
 
       {/* Main Content */}
       <div className="relative z-10">

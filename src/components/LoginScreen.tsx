@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, User, ShieldCheck, UserPlus } from 'lucide-react';
+import { Mail, Lock, User, UserPlus } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { toast } from 'sonner';
@@ -152,17 +152,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               className="w-full h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all text-base font-semibold"
             >
               <User className="w-5 h-5 mr-2" />
-              {loading ? 'Please wait...' : isSignup ? 'Sign up as Student' : 'Login as Student'}
-            </Button>
-
-            <Button
-              onClick={() => handleSubmit('admin')}
-              disabled={loading}
-              variant="outline"
-              className="w-full h-12 rounded-2xl border-2 border-cyan-400 text-cyan-600 hover:bg-cyan-50 hover:border-cyan-500 transition-all text-base font-semibold"
-            >
-              <ShieldCheck className="w-5 h-5 mr-2" />
-              {loading ? 'Please wait...' : isSignup ? 'Sign up as Admin' : 'Login as Admin'}
+              {loading ? 'Please wait...' : isSignup ? 'Create Account' : 'Login'}
             </Button>
           </div>
 

@@ -1,9 +1,24 @@
 import { motion } from 'motion/react';
-import { Calendar, Users, Award, Trophy, BookOpen, Heart } from 'lucide-react';
+import { Calendar, Users, Award, Heart, Brain } from 'lucide-react';
 import { Button } from './ui/button';
 import CongratulatoryBanner from './CongratulatoryBanner';
+import { useState, useEffect } from 'react';
 
 import type { Screen } from '../types';
+
+interface Event {
+  id: number;
+  title: string;
+  date: string;
+  emoji?: string;
+}
+
+interface Workshop {
+  id: number;
+  title: string;
+  emoji?: string;
+  price: string;
+}
 
 interface StudentDashboardProps {
   userName: string;
@@ -11,26 +26,61 @@ interface StudentDashboardProps {
 }
 
 export default function StudentDashboard({ userName, onNavigate }: StudentDashboardProps) {
-  const upcomingEvents = [
-    { id: 1, title: 'Tech Fest 2025', date: 'Nov 15', image: '🎭', color: 'from-pink-500 to-rose-500' },
-    { id: 2, title: 'Cultural Night', date: 'Nov 20', image: '🎨', color: 'from-cyan-500 to-blue-500' },
-    { id: 3, title: 'Sports Meet', date: 'Nov 25', image: '⚽', color: 'from-yellow-500 to-orange-500' },
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [workshops, setWorkshops] = useState<Workshop[]>([]);
+
+  const eventColors = [
+    'from-pink-500 to-rose-500',
+    'from-cyan-500 to-blue-500', 
+    'from-yellow-500 to-orange-500',
+    'from-purple-500 to-indigo-500',
+    'from-green-500 to-emerald-500',
   ];
+
+  useEffect(() => {
+    // Fetch events from API
+    fetch('/api/events/?status=published')
+      .then(res => res.json())
+      .then(data => {
+        const events = data.slice(0, 3).map((e: any) => ({
+          id: e.id,
+          title: e.title,
+          date: new Date(e.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          emoji: e.emoji || '🎉',
+        }));
+        setUpcomingEvents(events);
+      })
+      .catch(err => console.error('Error fetching events:', err));
+
+    // Fetch workshops from API
+    fetch('/api/workshops/')
+      .then(res => res.json())
+      .then(data => {
+        const ws = data.slice(0, 2).map((w: any) => ({
+          id: w.id,
+          title: w.title,
+          emoji: w.emoji || '📚',
+          price: w.price === 0 || w.price === '0' || !w.price ? 'Free' : `₹${w.price}`,
+        }));
+        setWorkshops(ws);
+      })
+      .catch(err => console.error('Error fetching workshops:', err));
+  }, []);
 
   const quickActions = [
     { icon: Users, label: 'Find Clubs', color: 'bg-cyan-500', onClick: () => onNavigate('clubs') },
     { icon: Heart, label: 'Volunteer', color: 'bg-pink-500', onClick: () => onNavigate('volunteering') },
-    { icon: Award, label: 'Certificates', color: 'bg-purple-500', onClick: () => {} },
+    { icon: Brain, label: 'Mental Health', color: 'bg-purple-500', onClick: () => onNavigate('mentalhealth') },
   ];
 
   return (
-    <div className="min-h-screen">
-      {/* Congratulatory Banner at the top */}
-      <div className="fixed top-16 left-0 right-0 z-20">
+    <div className="min-h-screen pt-20">
+      {/* Congratulatory Banner - not fixed, flows with content */}
+      <div className="w-full">
         <CongratulatoryBanner />
       </div>
 
-      <div className="pb-24 pt-44 px-6">
+      <div className="pb-24 pt-6 px-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -57,7 +107,7 @@ export default function StudentDashboard({ userName, onNavigate }: StudentDashbo
               className={`${action.color} rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all active:scale-95`}
             >
               <action.icon className="w-6 h-6 text-white mx-auto mb-2" />
-              <p className="text-white text-sm">{action.label}</p>
+              <p className="text-white text-sm font-semibold drop-shadow-md">{action.label}</p>
             </motion.button>
           ))}
         </div>
@@ -76,7 +126,7 @@ export default function StudentDashboard({ userName, onNavigate }: StudentDashbo
         </div>
 
         <div className="space-y-4">
-          {upcomingEvents.map((event, idx) => (
+          {upcomingEvents.length > 0 ? upcomingEvents.map((event, idx) => (
             <motion.div
               key={event.id}
               initial={{ opacity: 0, x: -20 }}
@@ -84,8 +134,8 @@ export default function StudentDashboard({ userName, onNavigate }: StudentDashbo
               transition={{ delay: idx * 0.1 }}
               className="bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-shadow flex items-center gap-4"
             >
-              <div className={`w-16 h-16 bg-gradient-to-br ${event.color} rounded-xl flex items-center justify-center text-3xl shadow-md`}>
-                {event.image}
+              <div className={`w-16 h-16 bg-gradient-to-br ${eventColors[idx % eventColors.length]} rounded-xl flex items-center justify-center text-3xl shadow-md`}>
+                {event.emoji}
               </div>
               <div className="flex-1">
                 <h4 className="text-gray-800 mb-1">{event.title}</h4>
@@ -98,7 +148,9 @@ export default function StudentDashboard({ userName, onNavigate }: StudentDashbo
                 Register
               </Button>
             </motion.div>
-          ))}
+          )) : (
+            <p className="text-gray-500 text-center py-4">No upcoming events</p>
+          )}
         </div>
       </div>
 
@@ -115,18 +167,15 @@ export default function StudentDashboard({ userName, onNavigate }: StudentDashbo
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {[
-            { title: 'Web Dev', icon: '💻', price: 'Free' },
-            { title: 'UI/UX Design', icon: '🎨', price: '₹299' },
-          ].map((workshop, idx) => (
+          {workshops.length > 0 ? workshops.map((workshop, idx) => (
             <motion.div
-              key={idx}
+              key={workshop.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.1 }}
               className="bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all"
             >
-              <div className="text-4xl mb-2 text-center">{workshop.icon}</div>
+              <div className="text-4xl mb-2 text-center">{workshop.emoji}</div>
               <h4 className="text-gray-800 text-center mb-2">{workshop.title}</h4>
               <div className="text-center">
                 <span className="inline-block bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">
@@ -134,7 +183,9 @@ export default function StudentDashboard({ userName, onNavigate }: StudentDashbo
                 </span>
               </div>
             </motion.div>
-          ))}
+          )) : (
+            <p className="text-gray-500 text-center py-4 col-span-2">No workshops available</p>
+          )}
         </div>
       </div>
       </div>

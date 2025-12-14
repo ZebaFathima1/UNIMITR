@@ -6,17 +6,21 @@ from .serializers import ClubSerializer, ClubJoinRequestSerializer
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user and request.user.is_authenticated and request.user.is_staff
+        # Allow all operations for admin dashboard
+        return True
 
 class ClubViewSet(viewsets.ModelViewSet):
-    queryset = Club.objects.all().order_by('name')
+    queryset = Club.objects.all().order_by('-updated_at')
     serializer_class = ClubSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [permissions.AllowAny]
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response['Cache-Control'] = 'no-store, no-cache'
+        return response
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        serializer.save()
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.AllowAny])
     def join(self, request, pk=None):
@@ -53,3 +57,11 @@ class ClubViewSet(viewsets.ModelViewSet):
         req.status = 'rejected'
         req.save(update_fields=['status'])
         return Response(ClubJoinRequestSerializer(req).data)
+
+    @action(detail=False, methods=['get'], url_path='my-requests', permission_classes=[permissions.AllowAny])
+    def my_requests(self, request):
+        email = request.query_params.get('email')
+        if not email:
+            return Response({'detail': 'Email parameter required'}, status=status.HTTP_400_BAD_REQUEST)
+        reqs = ClubJoinRequest.objects.filter(email=email).order_by('-created_at')
+        return Response(ClubJoinRequestSerializer(reqs, many=True).data)

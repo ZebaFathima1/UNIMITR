@@ -1,6 +1,9 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.http import JsonResponse
+from django.conf import settings
+from django.conf.urls.static import static
+from .views import serve_react_index
 
 def root(_request):
     return JsonResponse({
@@ -70,14 +73,26 @@ def root(_request):
         'health': '/health/'
     })
 
+
 urlpatterns = [
-    path('', root),
+    path('api/', root),
     path('health/', lambda _r: JsonResponse({'ok': True})),
-    path('admin/', admin.site.urls),
+    path('django-admin/', admin.site.urls),  # Django admin moved to /django-admin/
     path('api/auth/', include('apps.authapp.urls')),
     path('api/', include('apps.events.urls')),
     path('api/', include('apps.clubs.urls')),
     path('api/', include('apps.volunteering.urls')),
     path('api/', include('apps.internships.urls')),
     path('api/', include('apps.workshops.urls')),
+    path('api/mental-health/', include('apps.mentalhealth.urls')),
+    # React app routes — catch-all for frontend SPA routing
+    # /admin will be handled by React for the custom admin dashboard
+    # This must be LAST so API and admin routes take precedence
+    re_path(r'^(?!django-admin/|api/|static/|media/).*', serve_react_index),
 ]
+
+# Serve static files (CSS, JS, images from React build)
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

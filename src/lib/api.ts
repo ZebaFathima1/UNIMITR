@@ -1,7 +1,33 @@
 import axios from 'axios';
 
+// Determine API base URL based on environment
+const getApiBaseUrl = () => {
+  // If we're running on the same server (production), use relative URL
+  if (typeof window !== 'undefined') {
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev) {
+      return 'http://localhost:8000/api';
+    } else {
+      // Production: both frontend and backend on same port
+      return '/api';
+    }
+  }
+  return '/api';
+};
+
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: getApiBaseUrl(),
+});
+
+// Add cache-busting and no-cache headers to all requests
+api.interceptors.request.use((config) => {
+  // Add cache-busting timestamp to all GET requests
+  if (config.method === 'get') {
+    config.params = config.params || {};
+    config.params.t = Date.now();
+    config.headers['Cache-Control'] = 'no-store, no-cache';
+  }
+  return config;
 });
 
 export type LoginPayload = {
@@ -35,6 +61,51 @@ export type EventDto = {
   category: string;
   status: 'draft' | 'published';
   bannerUrl?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type ClubDto = {
+  id: string;
+  name: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type InternshipDto = {
+  id: string;
+  title: string;
+  company: string;
+  description?: string;
+  location: string;
+  internshipType: string;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type WorkshopDto = {
+  id: string;
+  title: string;
+  description?: string;
+  date: string;
+  time: string;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type VolunteeringDto = {
+  id: string;
+  title: string;
+  description?: string;
+  organization: string;
+  location: string;
+  date: string;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type EventRegistrationPayload = {
@@ -78,8 +149,28 @@ export async function compatLogin(payload: CompatLoginPayload) {
   return data as { access: string; refresh: string; user: any };
 }
 
-export async function fetchEvents(status?: 'published' | 'draft' | 'approved' | 'rejected' | 'pending') {
+export async function fetchEvents(status?: 'published' | 'draft' | 'approved' | 'rejected' | 'pending'): Promise<EventDto[]> {
   const { data } = await api.get<EventDto[]>('/events/', { params: status ? { status } : undefined });
+  return data;
+}
+
+export async function fetchClubs(): Promise<ClubDto[]> {
+  const { data } = await api.get<ClubDto[]>('/clubs/');
+  return data;
+}
+
+export async function fetchInternships(status?: string): Promise<InternshipDto[]> {
+  const { data } = await api.get<InternshipDto[]>('/internships/', { params: status ? { status } : undefined });
+  return data;
+}
+
+export async function fetchWorkshops(status?: string): Promise<WorkshopDto[]> {
+  const { data } = await api.get<WorkshopDto[]>('/workshops/', { params: status ? { status } : undefined });
+  return data;
+}
+
+export async function fetchVolunteering(status?: string): Promise<VolunteeringDto[]> {
+  const { data } = await api.get<VolunteeringDto[]>('/volunteering/', { params: status ? { status } : undefined });
   return data;
 }
 
@@ -98,6 +189,7 @@ export async function createEvent(payload: EventCreatePayload) {
   const { data } = await api.post('/events/', payload);
   return data as EventDto;
 }
+
 
 export type EventRegistration = {
   id: number;
@@ -158,11 +250,6 @@ export type ClubJoinRequest = {
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
 };
-
-export async function fetchClubs() {
-  const { data } = await api.get<ClubDto[]>('/clubs/');
-  return data;
-}
 
 export async function createClub(payload: { name: string; description?: string }) {
   const { data } = await api.post<ClubDto>('/clubs/', payload);
@@ -296,11 +383,6 @@ export type InternshipApplication = {
   created_at: string;
 };
 
-export async function fetchInternships(status?: string) {
-  const { data } = await api.get<InternshipDto[]>('/internships/', { params: status ? { status } : undefined });
-  return data;
-}
-
 export async function createInternship(payload: Partial<InternshipDto>) {
   const { data } = await api.post<InternshipDto>('/internships/', payload);
   return data;
@@ -371,11 +453,6 @@ export type WorkshopRegistration = {
   created_at: string;
 };
 
-export async function fetchWorkshops(status?: string) {
-  const { data } = await api.get<WorkshopDto[]>('/workshops/', { params: status ? { status } : undefined });
-  return data;
-}
-
 export async function createWorkshop(payload: Partial<WorkshopDto>) {
   const { data } = await api.post<WorkshopDto>('/workshops/', payload);
   return data;
@@ -403,6 +480,40 @@ export async function rejectWorkshopRegistration(workshopId: string | number, re
 
 export async function markWorkshopAttended(workshopId: string | number, registrationId: string | number) {
   const { data } = await api.post<WorkshopRegistration>(`/workshops/${workshopId}/registrations/${registrationId}/mark-attended/`);
+  return data;
+}
+
+// User's own applications/registrations (by email)
+export async function getMyClubRequests(email: string) {
+  const { data } = await api.get<ClubJoinRequest[]>(`/clubs/my-requests/`, { params: { email } });
+  return data;
+}
+
+export async function getMyEventRegistrations(email: string) {
+  const { data } = await api.get<EventRegistration[]>(`/events/my-registrations/`, { params: { email } });
+  return data;
+}
+
+export async function getMyVolunteeringApplications(email: string) {
+  const { data } = await api.get<VolunteeringApplication[]>(`/volunteering/my-applications/`, { params: { email } });
+  return data;
+}
+
+export async function getMyWorkshopRegistrations(email: string) {
+  const { data } = await api.get<WorkshopRegistration[]>(`/workshops/my-registrations/`, { params: { email } });
+  return data;
+}
+
+// User activity stats for Digital Twin
+export type UserActivityStats = {
+  eventsAttended: number;
+  workshopsCompleted: number;
+  volunteeringHours: number;
+  challengesCompleted: number;
+};
+
+export async function getUserActivityStats(email: string): Promise<UserActivityStats> {
+  const { data } = await api.get<UserActivityStats>(`/auth/user-stats/`, { params: { email } });
   return data;
 }
 

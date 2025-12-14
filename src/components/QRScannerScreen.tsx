@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { QrCode, Camera, Upload, CheckCircle, ArrowLeft } from 'lucide-react';
+import { QrCode, Camera, Upload, CheckCircle, ArrowLeft, SwitchCamera } from 'lucide-react';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
@@ -13,11 +13,13 @@ export default function QRScannerScreen({ onBack }: QRScannerScreenProps) {
   const [scanning, setScanning] = useState(false);
   const [decodedText, setDecodedText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const scanningRef = useRef<boolean>(false); // Use ref to track scanning state in async loop
 
   useEffect(() => {
     return () => {
@@ -31,6 +33,7 @@ export default function QRScannerScreen({ onBack }: QRScannerScreenProps) {
 
   const stopScanning = () => {
     setScanning(false);
+    scanningRef.current = false;
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -48,17 +51,33 @@ export default function QRScannerScreen({ onBack }: QRScannerScreenProps) {
     stopScanning();
   };
 
-  const startScanning = async () => {
+  const switchCamera = async () => {
+    const newMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(newMode);
+    if (scanning) {
+      stopScanning();
+      setTimeout(() => startScanningWithMode(newMode), 100);
+    }
+  };
+
+  const startScanningWithMode = async (mode: 'environment' | 'user') => {
     setError(null);
     setDecodedText(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: mode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
       setScanning(true);
+      scanningRef.current = true;
 
       // prefer native BarcodeDetector if available
       const BarcodeDetectorCtor = (window as any).BarcodeDetector;
@@ -70,11 +89,11 @@ export default function QRScannerScreen({ onBack }: QRScannerScreenProps) {
       }
 
       const scanLoop = async () => {
-        if (!scanning) return;
+        if (!scanningRef.current) return;
         try {
           const video = videoRef.current;
           const canvas = canvasRef.current!;
-          if (video && canvas) {
+          if (video && canvas && video.readyState === video.HAVE_ENOUGH_DATA) {
             const w = video.videoWidth || 640;
             const h = video.videoHeight || 480;
             canvas.width = w;
@@ -115,7 +134,7 @@ export default function QRScannerScreen({ onBack }: QRScannerScreenProps) {
         }
 
         // continue scanning
-        if (scanning) requestAnimationFrame(scanLoop);
+        if (scanningRef.current) requestAnimationFrame(scanLoop);
       };
 
       requestAnimationFrame(scanLoop);
@@ -125,6 +144,8 @@ export default function QRScannerScreen({ onBack }: QRScannerScreenProps) {
       setScanning(false);
     }
   };
+
+  const startScanning = () => startScanningWithMode(facingMode);
 
   const handleFile = async (file?: File) => {
     setError(null);
@@ -234,6 +255,16 @@ export default function QRScannerScreen({ onBack }: QRScannerScreenProps) {
           <div className="absolute inset-0 flex items-center justify-center opacity-20">
             <QrCode className="w-32 h-32 text-purple-600" />
           </div>
+
+          {/* Camera Switch Button */}
+          {scanning && (
+            <button
+              onClick={switchCamera}
+              className="absolute top-3 right-3 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+            >
+              <SwitchCamera className="w-5 h-5 text-purple-600" />
+            </button>
+          )}
         </div>
 
         <p className="text-center text-gray-600 mt-4">

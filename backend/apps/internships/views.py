@@ -13,7 +13,7 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 
 
 class InternshipViewSet(viewsets.ModelViewSet):
-    queryset = Internship.objects.all().order_by('-created_at')
+    queryset = Internship.objects.all().order_by('-updated_at')
     serializer_class = InternshipSerializer
     permission_classes = [IsAdminOrReadOnly]
 
@@ -23,6 +23,11 @@ class InternshipViewSet(viewsets.ModelViewSet):
         if status_param:
             qs = qs.filter(status=status_param)
         return qs
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response['Cache-Control'] = 'no-store, no-cache'
+        return response
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)

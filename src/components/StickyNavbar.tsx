@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Calendar, Users, Heart, Briefcase, LogIn, UserCircle, BookOpen } from 'lucide-react';
+import { Calendar, Users, Heart, Briefcase, LogIn, UserCircle, BookOpen, Home } from 'lucide-react';
 import internshipLogo from '../assets/WhatsApp Image 2025-12-06 at 19.52.38_7e3c71fa.jpg';
 import { Button } from './ui/button';
 
@@ -17,6 +17,7 @@ interface StickyNavbarProps {
 
 export default function StickyNavbar({ currentTab, onNavigate, onLogin, isLoggedIn, userName, onProfileClick }: StickyNavbarProps) {
   const allTabs: { id: Screen; label: string; icon: any; isCenter?: boolean }[] = [
+    { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'events', label: 'Events', icon: Calendar },
     { id: 'clubs', label: 'Clubs', icon: Users },
     { id: 'internships', label: 'Internships', icon: Briefcase, isCenter: true },
@@ -24,9 +25,9 @@ export default function StickyNavbar({ currentTab, onNavigate, onLogin, isLogged
     { id: 'volunteering', label: 'Volunteering', icon: Heart },
   ];
 
-  // Show protected tabs (like 'internships') only when logged in
+  // Show protected tabs (like 'internships', 'dashboard') only when logged in
   const tabs = allTabs.filter((t) => {
-    if (t.id === 'internships' && !isLoggedIn) return false;
+    if ((t.id === 'internships' || t.id === 'dashboard') && !isLoggedIn) return false;
     return true;
   });
 

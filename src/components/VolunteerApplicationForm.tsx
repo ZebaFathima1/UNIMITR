@@ -1,39 +1,53 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Heart, Mail, Phone, Users, GraduationCap, Calendar, FileText, Sparkles } from 'lucide-react';
+import { X, Heart, Mail, Phone, Users, GraduationCap, Calendar, FileText, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
+import { applyForVolunteering } from '../lib/api';
 
 interface VolunteerApplicationFormProps {
+  opportunityId: number;
   activityName: string;
+  organization?: string;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export default function VolunteerApplicationForm({ activityName, onClose }: VolunteerApplicationFormProps) {
+export default function VolunteerApplicationForm({ opportunityId, activityName, organization, onClose, onSuccess }: VolunteerApplicationFormProps) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    branch: '',
-    year: '',
-    availability: '',
-    skills: '',
+    studentId: '',
     motivation: '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
+      await applyForVolunteering(opportunityId, {
+        fullName: formData.name,
+        email: formData.email,
+        studentId: formData.studentId,
+        phone: formData.phone,
+        motivation: formData.motivation,
+      });
+      
       toast.success(`Application Submitted!`, {
         description: `Thank you for applying to volunteer for ${activityName}. We'll contact you soon!`,
       });
-      setIsSubmitting(false);
+      if (onSuccess) onSuccess();
       onClose();
-    }, 1500);
+    } catch (error: any) {
+      console.error('Error applying:', error);
+      toast.error(error.response?.data?.detail || 'Failed to submit application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -156,107 +170,33 @@ export default function VolunteerApplicationForm({ activityName, onClose }: Volu
             </div>
           </motion.div>
 
-          {/* Branch & Year */}
-          <div className="grid grid-cols-2 gap-4">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <label className="block text-gray-700 font-semibold mb-2">
-                Branch <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <select
-                  required
-                  value={formData.branch}
-                  onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                  className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none transition-colors appearance-none bg-white"
-                >
-                  <option value="">Select Branch</option>
-                  <option value="CSE">Computer Science</option>
-                  <option value="IT">Information Technology</option>
-                  <option value="ECE">Electronics</option>
-                  <option value="ME">Mechanical</option>
-                  <option value="CE">Civil</option>
-                  <option value="EE">Electrical</option>
-                </select>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <label className="block text-gray-700 font-semibold mb-2">
-                Year <span className="text-red-500">*</span>
-              </label>
-              <select
-                required
-                value={formData.year}
-                onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none transition-colors appearance-none bg-white"
-              >
-                <option value="">Select Year</option>
-                <option value="1">1st Year</option>
-                <option value="2">2nd Year</option>
-                <option value="3">3rd Year</option>
-                <option value="4">4th Year</option>
-              </select>
-            </motion.div>
-          </div>
-
-          {/* Availability */}
+          {/* Branch & Year replaced with Student ID */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
+            transition={{ delay: 0.4 }}
           >
             <label className="block text-gray-700 font-semibold mb-2">
-              Availability <span className="text-red-500">*</span>
+              Student ID <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <select
+              <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
                 required
-                value={formData.availability}
-                onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
-                className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none transition-colors appearance-none bg-white"
-              >
-                <option value="">Select Your Availability</option>
-                <option value="weekends">Weekends Only</option>
-                <option value="weekdays">Weekday Evenings</option>
-                <option value="flexible">Flexible</option>
-                <option value="full-time">Full Time (Vacation)</option>
-              </select>
+                value={formData.studentId}
+                onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
+                className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none transition-colors"
+                placeholder="Enter your student ID"
+              />
             </div>
-          </motion.div>
-
-          {/* Skills */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.7 }}
-          >
-            <label className="block text-gray-700 font-semibold mb-2">
-              Relevant Skills
-            </label>
-            <input
-              type="text"
-              value={formData.skills}
-              onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none transition-colors"
-              placeholder="e.g., Communication, Event Management, First Aid"
-            />
           </motion.div>
 
           {/* Motivation */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.8 }}
+            transition={{ delay: 0.5 }}
           >
             <label className="block text-gray-700 font-semibold mb-2">
               Why do you want to volunteer? <span className="text-red-500">*</span>
@@ -278,7 +218,7 @@ export default function VolunteerApplicationForm({ activityName, onClose }: Volu
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9 }}
+            transition={{ delay: 0.6 }}
             className="pt-4"
           >
             <Button
@@ -287,21 +227,14 @@ export default function VolunteerApplicationForm({ activityName, onClose }: Volu
               className="w-full bg-gradient-to-r from-pink-500 via-red-500 to-orange-500 hover:from-pink-600 hover:via-red-600 hover:to-orange-600 text-white py-6 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transition-all relative overflow-hidden group"
             >
               {isSubmitting ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  className="w-6 h-6 border-3 border-white border-t-transparent rounded-full"
-                />
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Submitting...
+                </span>
               ) : (
                 <>
                   <Sparkles className="w-5 h-5 mr-2 inline" />
                   Submit Application
-                  <motion.div
-                    className="absolute inset-0 bg-white/20"
-                    initial={{ x: '-100%' }}
-                    whileHover={{ x: '100%' }}
-                    transition={{ duration: 0.5 }}
-                  />
                 </>
               )}
             </Button>

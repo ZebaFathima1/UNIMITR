@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Lock, TrendingUp, Target, Activity, Crown, Award, Zap } from 'lucide-react';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
+import { ArrowLeft, TrendingUp, Award, Sparkles, User } from 'lucide-react';
 import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Progress } from './ui/progress';
 import { toast } from 'sonner';
 
 interface DigitalTwinScreenProps {
@@ -20,447 +16,214 @@ interface DigitalTwinScreenProps {
   };
 }
 
-type Mood = 'energetic' | 'growing' | 'tired' | 'curious' | 'motivated';
-type AvatarStyle = 'casual' | 'formal' | 'sporty' | 'creative' | 'tech';
-type AvatarColor = 'purple' | 'pink' | 'cyan' | 'yellow' | 'gradient';
+type Gender = 'male' | 'female';
 
-interface AvatarCustomization {
-  style: AvatarStyle;
-  color: AvatarColor;
-  accessories: string[];
-}
+const maleAvatars = [
+  { id: 'male1', emoji: '👨', name: 'Classic' },
+  { id: 'male2', emoji: '👨‍💼', name: 'Professional' },
+  { id: 'male3', emoji: '👨‍🎓', name: 'Graduate' },
+  { id: 'male4', emoji: '🧑', name: 'Young' },
+  { id: 'male5', emoji: '👨‍💻', name: 'Tech' },
+  { id: 'male6', emoji: '🧔', name: 'Bearded' },
+];
 
-const moodData = {
-  energetic: {
-    icon: Activity,
-    label: 'High Performance',
-    color: 'from-amber-500 to-orange-600',
-    textColor: 'text-amber-700',
-    bgColor: 'bg-amber-50',
-    borderColor: 'border-amber-200',
-    description: 'Exceptional engagement across all activities',
-    insight: 'Your activity levels demonstrate outstanding commitment to campus involvement.',
-  },
-  growing: {
-    icon: TrendingUp,
-    label: 'Progressive Growth',
-    color: 'from-emerald-500 to-green-600',
-    textColor: 'text-emerald-700',
-    bgColor: 'bg-emerald-50',
-    borderColor: 'border-emerald-200',
-    description: 'Consistent volunteering participation',
-    insight: 'Your community contributions reflect strong leadership potential.',
-  },
-  tired: {
-    icon: Target,
-    label: 'Re-engagement Phase',
-    color: 'from-slate-400 to-gray-500',
-    textColor: 'text-slate-700',
-    bgColor: 'bg-slate-50',
-    borderColor: 'border-slate-200',
-    description: 'Activity levels below baseline',
-    insight: 'Consider exploring new opportunities to maximize your campus experience.',
-  },
-  curious: {
-    icon: Zap,
-    label: 'Knowledge Expansion',
-    color: 'from-blue-500 to-indigo-600',
-    textColor: 'text-blue-700',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
-    description: 'Active workshop and learning engagement',
-    insight: 'Your commitment to continuous learning sets you apart.',
-  },
-  motivated: {
-    icon: Crown,
-    label: 'Peak Achievement',
-    color: 'from-rose-500 to-pink-600',
-    textColor: 'text-rose-700',
-    bgColor: 'bg-rose-50',
-    borderColor: 'border-rose-200',
-    description: 'Superior challenge completion rate',
-    insight: 'Your performance trajectory indicates exceptional dedication.',
-  },
+const femaleAvatars = [
+  { id: 'female1', emoji: '👩', name: 'Classic' },
+  { id: 'female2', emoji: '👩‍💼', name: 'Professional' },
+  { id: 'female3', emoji: '👩‍🎓', name: 'Graduate' },
+  { id: 'female4', emoji: '🧕', name: 'Hijabi' },
+  { id: 'female5', emoji: '👩‍💻', name: 'Tech' },
+  { id: 'female6', emoji: '👧', name: 'Young' },
+];
+
+const backgrounds = [
+  { id: 'purple', gradient: 'from-purple-400 to-pink-500', name: 'Purple' },
+  { id: 'blue', gradient: 'from-cyan-400 to-blue-500', name: 'Ocean' },
+  { id: 'green', gradient: 'from-green-400 to-emerald-500', name: 'Nature' },
+  { id: 'sunset', gradient: 'from-orange-400 to-rose-500', name: 'Sunset' },
+  { id: 'galaxy', gradient: 'from-indigo-500 via-purple-500 to-pink-500', name: 'Galaxy' },
+  { id: 'white', gradient: 'from-gray-100 to-white', name: 'White' },
+];
+
+// Pre-define gradient classes for Tailwind to include them in the build
+const gradientClasses: Record<string, string> = {
+  'purple': 'bg-gradient-to-br from-purple-400 to-pink-500',
+  'blue': 'bg-gradient-to-br from-cyan-400 to-blue-500',
+  'green': 'bg-gradient-to-br from-green-400 to-emerald-500',
+  'sunset': 'bg-gradient-to-br from-orange-400 to-rose-500',
+  'galaxy': 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500',
+  'white': 'bg-gradient-to-br from-gray-100 to-white border border-gray-200',
 };
 
-const avatarStyles = [
-  { id: 'casual', name: 'Professional Casual', emoji: '👔', locked: false, description: 'Balanced professional appearance' },
-  { id: 'formal', name: 'Executive Formal', emoji: '💼', locked: false, description: 'Business leadership presence' },
-  { id: 'sporty', name: 'Athletic Professional', emoji: '⚡', locked: true, unlockPoints: 200, description: 'Dynamic and energetic' },
-  { id: 'creative', name: 'Innovation Leader', emoji: '🎯', locked: true, unlockPoints: 300, description: 'Creative and forward-thinking' },
-  { id: 'tech', name: 'Tech Executive', emoji: '💻', locked: true, unlockPoints: 400, description: 'Digital transformation expert' },
-];
-
-const colorOptions = [
-  { id: 'purple', name: 'Royal Authority', gradient: 'from-purple-600 to-indigo-700' },
-  { id: 'pink', name: 'Executive Prestige', gradient: 'from-rose-500 to-pink-600' },
-  { id: 'cyan', name: 'Corporate Excellence', gradient: 'from-cyan-500 to-blue-700' },
-  { id: 'yellow', name: 'Leadership Gold', gradient: 'from-amber-500 to-yellow-600' },
-  { id: 'gradient', name: 'Premium Elite', gradient: 'from-purple-600 via-pink-600 to-cyan-600' },
-];
-
-const accessories = [
-  { id: 'star', emoji: '⭐', name: 'Recognition Star', locked: false, category: 'Achievement' },
-  { id: 'cert', emoji: '🎓', name: 'Academic Excellence', locked: true, unlockPoints: 150, category: 'Education' },
-  { id: 'crown', emoji: '👑', name: 'Leadership Crown', locked: true, unlockPoints: 500, category: 'Leadership' },
-  { id: 'trophy', emoji: '🏆', name: 'Championship Trophy', locked: false, category: 'Performance' },
-];
-
 export default function DigitalTwinScreen({ onBack, userName, userActivity }: DigitalTwinScreenProps) {
-  const [currentMood, setCurrentMood] = useState<Mood>('energetic');
-  const [avatar, setAvatar] = useState<AvatarCustomization>({
-    style: 'casual',
-    color: 'purple',
-    accessories: ['star'],
-  });
-  const [userPoints, setUserPoints] = useState(450);
+  const [userPoints] = useState(450);
   const [growthLevel, setGrowthLevel] = useState(0);
+  const [gender, setGender] = useState<Gender>('female');
+  const [selectedAvatar, setSelectedAvatar] = useState('female1');
+  const [selectedBgId, setSelectedBgId] = useState('purple');
 
   useEffect(() => {
-    const calculateMood = () => {
-      const daysSinceActive = Math.floor(
-        (new Date().getTime() - userActivity.lastActive.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      if (daysSinceActive > 7) return 'tired';
-      if (userActivity.challengesCompleted > 3) return 'motivated';
-      if (userActivity.workshopsCompleted > 2) return 'curious';
-      if (userActivity.volunteeringHours > 5) return 'growing';
-      return 'energetic';
-    };
-
-    setCurrentMood(calculateMood());
-  }, [userActivity]);
+    const savedData = localStorage.getItem('digitalTwinAvatar');
+    if (savedData) {
+      const data = JSON.parse(savedData);
+      setGender(data.gender || 'female');
+      setSelectedAvatar(data.avatar || 'female1');
+      setSelectedBgId(data.background || 'purple');
+    }
+  }, []);
 
   useEffect(() => {
-    const totalActivity =
-      userActivity.eventsAttended * 10 +
-      userActivity.volunteeringHours * 15 +
-      userActivity.workshopsCompleted * 12 +
-      userActivity.challengesCompleted * 20;
+    localStorage.setItem('digitalTwinAvatar', JSON.stringify({ gender, avatar: selectedAvatar, background: selectedBgId }));
+  }, [gender, selectedAvatar, selectedBgId]);
 
+  useEffect(() => {
+    const totalActivity = userActivity.eventsAttended * 10 + userActivity.volunteeringHours * 15 + userActivity.workshopsCompleted * 12 + userActivity.challengesCompleted * 20;
     setGrowthLevel(Math.min(totalActivity, 100));
   }, [userActivity]);
 
-  const mood = moodData[currentMood];
-  const MoodIcon = mood.icon;
+  const currentAvatars = gender === 'male' ? maleAvatars : femaleAvatars;
+  const currentAvatarEmoji = currentAvatars.find(a => a.id === selectedAvatar)?.emoji || (gender === 'male' ? '👨' : '👩');
+  const currentBg = backgrounds.find(b => b.id === selectedBgId);
 
-  const handleStyleChange = (styleId: AvatarStyle) => {
-    const style = avatarStyles.find((s) => s.id === styleId);
-    if (style?.locked && style.unlockPoints && userPoints < style.unlockPoints) {
-      toast.error(`Requires ${style.unlockPoints} points to unlock`);
-      return;
-    }
-    setAvatar({ ...avatar, style: styleId });
-    toast.success('Profile updated successfully');
+  const handleGenderChange = (newGender: Gender) => {
+    setGender(newGender);
+    setSelectedAvatar(newGender === 'male' ? 'male1' : 'female1');
+    toast.success(`Switched to ${newGender} avatar`);
   };
-
-  const handleColorChange = (colorId: AvatarColor) => {
-    setAvatar({ ...avatar, color: colorId });
-    toast.success('Theme updated');
-  };
-
-  const handleAccessoryToggle = (accessoryId: string) => {
-    const accessory = accessories.find((a) => a.id === accessoryId);
-    if (accessory?.locked && accessory.unlockPoints && userPoints < accessory.unlockPoints) {
-      toast.error(`Requires ${accessory.unlockPoints} points to unlock`);
-      return;
-    }
-
-    if (avatar.accessories.includes(accessoryId)) {
-      setAvatar({
-        ...avatar,
-        accessories: avatar.accessories.filter((a) => a !== accessoryId),
-      });
-    } else {
-      setAvatar({
-        ...avatar,
-        accessories: [...avatar.accessories, accessoryId],
-      });
-    }
-  };
-
-  const selectedColor = colorOptions.find((c) => c.id === avatar.color);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30 pb-20">
-      {/* Professional Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-5">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onBack}
-              className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 pb-24">
+      <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 sticky top-0 z-20 px-4 py-4 shadow-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={onBack} className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
+              <ArrowLeft className="w-5 h-5 text-white" />
             </button>
-            <div className="flex-1">
-              <h1 className="text-gray-900">Digital Twin Profile</h1>
-              <p className="text-gray-500">AI-Powered Performance Analytics & Customization</p>
+            <div>
+              <h1 className="text-xl font-bold text-white">Digital Twin</h1>
+              <p className="text-sm text-white/70">Your Avatar</p>
             </div>
-            <Badge variant="secondary" className="gap-2 px-4 py-2">
-              <Award className="w-4 h-4" />
-              {userPoints} Points
-            </Badge>
           </div>
+          <Badge className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 border border-white/30">
+            <Award className="w-4 h-4 mr-1.5" /> {userPoints} pts
+          </Badge>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Avatar & Status */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Avatar Card */}
-            <Card className="p-6 border-2">
-              <div className="text-center mb-6">
-                <motion.div
-                  initial={{ scale: 0.9 }}
-                  animate={{ scale: 1 }}
-                  className={`w-40 h-40 mx-auto rounded-full bg-gradient-to-br ${selectedColor?.gradient} flex items-center justify-center shadow-xl relative mb-4`}
-                >
-                  <div className="text-6xl relative z-10">
-                    {avatarStyles.find((s) => s.id === avatar.style)?.emoji}
-                  </div>
-                  {avatar.accessories.map((accId) => {
-                    const acc = accessories.find((a) => a.id === accId);
-                    return (
-                      <div key={accId} className="absolute -top-2 -right-2 text-2xl">
-                        {acc?.emoji}
-                      </div>
-                    );
-                  })}
-                </motion.div>
-                <h2 className="text-gray-900 mb-1">{userName}</h2>
-                <p className="text-gray-500">Digital Twin</p>
-              </div>
+      <div className="px-4 py-6 space-y-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-6 border border-purple-100 dark:border-slate-700">
+          <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className={`relative w-48 h-48 mx-auto rounded-3xl bg-gradient-to-br ${currentBg?.gradient} flex items-center justify-center shadow-2xl overflow-hidden`}>
+            <div className="absolute inset-0 opacity-30">
+              <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-white/40" />
+              <div className="absolute bottom-6 right-4 w-6 h-6 rounded-full bg-white/30" />
+            </div>
+            <span className="relative z-10 drop-shadow-lg" style={{ fontSize: '140px', lineHeight: 1 }}>{currentAvatarEmoji}</span>
+          </motion.div>
+          <div className="text-center mt-5">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{userName}</h2>
+            <p className="text-gray-500 text-sm mt-1">Your Digital Twin</p>
+          </div>
+          <div className="grid grid-cols-4 gap-3 mt-6">
+            <div className="text-center p-3 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl shadow-lg">
+              <p className="text-xl font-bold text-white">{userActivity.eventsAttended}</p>
+              <p className="text-xs text-white/80">Events</p>
+            </div>
+            <div className="text-center p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg">
+              <p className="text-xl font-bold text-white">{userActivity.volunteeringHours}h</p>
+              <p className="text-xs text-white/80">Volunteer</p>
+            </div>
+            <div className="text-center p-3 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl shadow-lg">
+              <p className="text-xl font-bold text-white">{userActivity.workshopsCompleted}</p>
+              <p className="text-xs text-white/80">Workshops</p>
+            </div>
+            <div className="text-center p-3 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl shadow-lg">
+              <p className="text-xl font-bold text-white">{userActivity.challengesCompleted}</p>
+              <p className="text-xs text-white/80">Challenges</p>
+            </div>
+          </div>
+        </motion.div>
 
-              {/* Quick Stats */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                  <span className="text-gray-700">Events Attended</span>
-                  <span className="text-purple-700">{userActivity.eventsAttended}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
-                  <span className="text-gray-700">Volunteer Hours</span>
-                  <span className="text-emerald-700">{userActivity.volunteeringHours}h</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-cyan-50 rounded-lg">
-                  <span className="text-gray-700">Workshops</span>
-                  <span className="text-cyan-700">{userActivity.workshopsCompleted}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-rose-50 rounded-lg">
-                  <span className="text-gray-700">Challenges</span>
-                  <span className="text-rose-700">{userActivity.challengesCompleted}</span>
-                </div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-6 border border-purple-100 dark:border-slate-700">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl"><TrendingUp className="w-5 h-5 text-white" /></div>
+              <h3 className="font-bold text-gray-800 dark:text-white">Growth Level</h3>
+            </div>
+            <span className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{growthLevel}%</span>
+          </div>
+          <div className="relative h-4 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden mb-6">
+            <motion.div initial={{ width: 0 }} animate={{ width: `${growthLevel}%` }} transition={{ duration: 1 }} className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 rounded-full" />
+          </div>
+          <div className="flex justify-between">
+            {['🌱 Start', '🌿 Active', '🪴 Engaged', '🌳 Leader'].map((stage, i) => (
+              <div key={i} className={`text-center ${growthLevel >= i * 33 ? 'opacity-100' : 'opacity-40'}`}>
+                <div className="text-2xl mb-1">{stage.split(' ')[0]}</div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{stage.split(' ')[1]}</p>
               </div>
-            </Card>
+            ))}
+          </div>
+        </motion.div>
 
-            {/* Performance Metrics */}
-            <Card className="p-6">
-              <h3 className="text-gray-900 mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-purple-600" />
-                Growth Trajectory
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <div className="flex justify-between text-gray-700 mb-2">
-                    <span>Overall Progress</span>
-                    <span>{growthLevel}%</span>
-                  </div>
-                  <Progress value={growthLevel} className="h-2" />
-                </div>
-                <div className="grid grid-cols-4 gap-2 mt-4">
-                  {[
-                    { level: 0, icon: '🌱', label: 'Starter' },
-                    { level: 25, icon: '🌿', label: 'Active' },
-                    { level: 60, icon: '🪴', label: 'Engaged' },
-                    { level: 80, icon: '🌳', label: 'Leader' },
-                  ].map((stage) => (
-                    <div
-                      key={stage.level}
-                      className={`text-center p-2 rounded-lg transition-all ${
-                        growthLevel >= stage.level
-                          ? 'bg-emerald-100 border-2 border-emerald-300'
-                          : 'bg-gray-50 border-2 border-gray-200'
-                      }`}
-                    >
-                      <div className="text-2xl mb-1">{growthLevel >= stage.level ? stage.icon : '🔒'}</div>
-                      <p className={`text-xs ${growthLevel >= stage.level ? 'text-emerald-700' : 'text-gray-400'}`}>
-                        {stage.label}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Card>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-6 border border-purple-100 dark:border-slate-700">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="p-2 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl"><Sparkles className="w-5 h-5 text-white" /></div>
+            <h3 className="font-bold text-gray-800 dark:text-white">Customize Avatar</h3>
+          </div>
+          
+          <div className="mb-6">
+            <p className="text-sm text-gray-500 mb-3">Select Gender</p>
+            <div className="flex gap-3">
+              <button onClick={() => handleGenderChange('male')} className={`flex-1 p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${gender === 'male' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'border-gray-200 dark:border-slate-600'}`}>
+                <span className="text-4xl">👨</span>
+                <span className={`text-sm font-medium ${gender === 'male' ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'}`}>Male</span>
+              </button>
+              <button onClick={() => handleGenderChange('female')} className={`flex-1 p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${gender === 'female' ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/30' : 'border-gray-200 dark:border-slate-600'}`}>
+                <span className="text-4xl">👩</span>
+                <span className={`text-sm font-medium ${gender === 'female' ? 'text-pink-600' : 'text-gray-600 dark:text-gray-400'}`}>Female</span>
+              </button>
+            </div>
           </div>
 
-          {/* Right Column - Insights & Customization */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Performance Insight */}
-            <Card className={`p-6 border-2 ${mood.borderColor} ${mood.bgColor}`}>
-              <div className="flex items-start gap-4">
-                <div className={`p-3 rounded-xl bg-white shadow-sm`}>
-                  <MoodIcon className={`w-8 h-8 ${mood.textColor}`} />
-                </div>
-                <div className="flex-1">
-                  <h3 className={`${mood.textColor} mb-1`}>{mood.label}</h3>
-                  <p className="text-gray-600 mb-3">{mood.description}</p>
-                  <div className="bg-white rounded-lg p-4 shadow-sm">
-                    <p className="text-gray-700">
-                      <span className="font-semibold">AI Insight:</span> {mood.insight}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* Customization Panel */}
-            <Card className="p-6">
-              <h3 className="text-gray-900 mb-6">Avatar Customization</h3>
-              
-              <Tabs defaultValue="appearance" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-6">
-                  <TabsTrigger value="appearance">Appearance</TabsTrigger>
-                  <TabsTrigger value="theme">Theme</TabsTrigger>
-                  <TabsTrigger value="achievements">Achievements</TabsTrigger>
-                </TabsList>
-
-                {/* Appearance Styles */}
-                <TabsContent value="appearance" className="space-y-3">
-                  {avatarStyles.map((style) => (
-                    <motion.button
-                      key={style.id}
-                      onClick={() => handleStyleChange(style.id as AvatarStyle)}
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.99 }}
-                      className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                        avatar.style === style.id
-                          ? 'border-purple-600 bg-purple-50 shadow-md'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      } ${style.locked ? 'opacity-60' : ''}`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="text-4xl">{style.emoji}</div>
-                          <div>
-                            <div className="text-gray-900 mb-1">{style.name}</div>
-                            <p className="text-gray-500">{style.description}</p>
-                          </div>
-                        </div>
-                        {style.locked ? (
-                          <Badge variant="outline" className="gap-1 border-gray-300">
-                            <Lock className="w-3 h-3" />
-                            {style.unlockPoints}
-                          </Badge>
-                        ) : (
-                          avatar.style === style.id && (
-                            <Badge className="bg-purple-600">Active</Badge>
-                          )
-                        )}
-                      </div>
-                    </motion.button>
-                  ))}
-                </TabsContent>
-
-                {/* Color Themes */}
-                <TabsContent value="theme" className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    {colorOptions.map((color) => (
-                      <motion.button
-                        key={color.id}
-                        onClick={() => handleColorChange(color.id as AvatarColor)}
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                        className={`p-4 rounded-xl border-2 transition-all ${
-                          avatar.color === color.id
-                            ? 'border-purple-600 shadow-lg'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className={`w-full h-24 rounded-lg bg-gradient-to-br ${color.gradient} mb-3`}></div>
-                        <p className="text-gray-900">{color.name}</p>
-                        {avatar.color === color.id && (
-                          <Badge className="mt-2 bg-purple-600 w-full">Selected</Badge>
-                        )}
-                      </motion.button>
-                    ))}
-                  </div>
-                </TabsContent>
-
-                {/* Achievements/Accessories */}
-                <TabsContent value="achievements" className="space-y-3">
-                  {accessories.map((acc) => (
-                    <motion.button
-                      key={acc.id}
-                      onClick={() => handleAccessoryToggle(acc.id)}
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.99 }}
-                      className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                        avatar.accessories.includes(acc.id)
-                          ? 'border-purple-600 bg-purple-50 shadow-md'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      } ${acc.locked ? 'opacity-60' : ''}`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="text-4xl">{acc.emoji}</div>
-                          <div>
-                            <div className="text-gray-900 mb-1">{acc.name}</div>
-                            <p className="text-gray-500">{acc.category}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {avatar.accessories.includes(acc.id) && (
-                            <Badge className="bg-emerald-600">Equipped</Badge>
-                          )}
-                          {acc.locked && (
-                            <Badge variant="outline" className="gap-1 border-gray-300">
-                              <Lock className="w-3 h-3" />
-                              {acc.unlockPoints}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </motion.button>
-                  ))}
-                </TabsContent>
-              </Tabs>
-            </Card>
-
-            {/* AI Motivation System */}
-            <Card className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-100">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-white rounded-xl shadow-sm">
-                  <Target className="w-6 h-6 text-purple-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-gray-900 mb-2">Intelligent Motivation System</h3>
-                  <p className="text-gray-600 mb-4">
-                    Your Digital Twin analyzes your activity patterns and provides personalized insights to optimize your campus experience.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="bg-white rounded-lg p-3 border border-purple-100">
-                      <p className="text-gray-700">
-                        <span className="text-purple-600">●</span> Real-time activity monitoring and trend analysis
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 border border-purple-100">
-                      <p className="text-gray-700">
-                        <span className="text-purple-600">●</span> Personalized recommendations based on your profile
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 border border-purple-100">
-                      <p className="text-gray-700">
-                        <span className="text-purple-600">●</span> Performance benchmarking and goal tracking
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
+          <div className="mb-6">
+            <p className="text-sm text-gray-500 mb-3">Choose Avatar Style</p>
+            <div className="grid grid-cols-3 gap-3">
+              {currentAvatars.map((avatar) => (
+                <button key={avatar.id} onClick={() => { setSelectedAvatar(avatar.id); toast.success('Avatar updated!'); }} className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${selectedAvatar === avatar.id ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30' : 'border-gray-200 dark:border-slate-600'}`}>
+                  <span className="text-3xl">{avatar.emoji}</span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">{avatar.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+
+          <div>
+            <p className="text-sm text-gray-500 mb-3">Choose Background</p>
+            <div className="grid grid-cols-3 gap-3">
+              {backgrounds.map((bg) => (
+                <button key={bg.id} onClick={() => { setSelectedBgId(bg.id); toast.success('Background updated!'); }} className={`p-2 rounded-xl border-2 transition-all ${selectedBgId === bg.id ? 'border-purple-500' : 'border-transparent'}`}>
+                  <div className={`w-full h-14 rounded-lg ${gradientClasses[bg.id]}`} />
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5 text-center">{bg.name}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-3xl shadow-xl p-6 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl"><User className="w-7 h-7 text-white" /></div>
+              <div>
+                <h3 className="font-bold text-white text-lg">Your Digital Identity</h3>
+                <p className="text-sm text-white/80">Personalize your avatar</p>
+              </div>
+            </div>
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-lg">
+              <p className="text-gray-700 text-sm leading-relaxed"><span className="font-bold text-purple-600">Tip:</span> Your Digital Twin represents you across the campus platform. Choose an avatar that reflects your personality!</p>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

@@ -6,7 +6,8 @@ class EventSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Event
-        fields = ['id', 'title', 'description', 'date', 'time', 'location', 'category', 'status', 'bannerUrl']
+        fields = ['id', 'title', 'description', 'date', 'time', 'location', 'category', 'status', 'bannerUrl', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
 
 class EventRegistrationSerializer(serializers.ModelSerializer):
     fullName = serializers.CharField(source='full_name')

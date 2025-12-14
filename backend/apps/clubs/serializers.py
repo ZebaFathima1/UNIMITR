@@ -4,8 +4,8 @@ from .models import Club, ClubJoinRequest
 class ClubSerializer(serializers.ModelSerializer):
     class Meta:
         model = Club
-        fields = ['id', 'name', 'description', 'created_by', 'created_at']
-        read_only_fields = ['id', 'created_by', 'created_at']
+        fields = ['id', 'name', 'description', 'created_by', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
 
 class ClubJoinRequestSerializer(serializers.ModelSerializer):
     fullName = serializers.CharField(source='full_name')

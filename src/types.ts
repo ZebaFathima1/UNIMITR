@@ -17,6 +17,9 @@ export type Screen =
   | 'createevent'
   | 'uploadbanner'
   | 'editevents'
-  | 'viewrequests';
+  | 'viewrequests'
+  | 'myapplications'
+  | 'mentalhealth';
 
 export type UserRole = 'student' | 'admin' | null;
+

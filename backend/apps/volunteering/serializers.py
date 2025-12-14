@@ -12,9 +12,9 @@ class VolunteeringOpportunitySerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'organization', 'location', 
             'date', 'time', 'durationHours', 'requiredVolunteers', 
-            'category', 'status', 'bannerUrl', 'created_at'
+            'category', 'status', 'bannerUrl', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class VolunteeringApplicationSerializer(serializers.ModelSerializer):

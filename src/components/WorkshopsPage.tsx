@@ -1,54 +1,28 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar, Clock, DollarSign, Award } from 'lucide-react';
+import { Calendar, Clock, DollarSign, Award, MapPin, Users } from 'lucide-react';
 import { Button } from './ui/button';
 import WorkshopRegistrationForm from './WorkshopRegistrationForm';
+import api from '../lib/api';
 
 export default function WorkshopsPage() {
-  const [selectedWorkshop, setSelectedWorkshop] = useState<{ name: string; price: string } | null>(null);
+  const [workshops, setWorkshops] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedWorkshop, setSelectedWorkshop] = useState<any | null>(null);
 
-  const workshops = [
-    {
-      id: 1,
-      title: 'Web Development Bootcamp',
-      date: 'Nov 18-20, 2024',
-      duration: '3 days',
-      price: 'Free',
-      icon: '💻',
-      instructor: 'Prof. Sharma',
-      seats: 45,
-    },
-    {
-      id: 2,
-      title: 'UI/UX Design Masterclass',
-      date: 'Nov 22, 2024',
-      duration: '1 day',
-      price: '₹299',
-      icon: '🎨',
-      instructor: 'Dr. Patel',
-      seats: 30,
-    },
-    {
-      id: 3,
-      title: 'Data Science with Python',
-      date: 'Nov 25-27, 2024',
-      duration: '3 days',
-      price: '₹499',
-      icon: '📊',
-      instructor: 'Prof. Kumar',
-      seats: 40,
-    },
-    {
-      id: 4,
-      title: 'Digital Marketing',
-      date: 'Dec 1, 2024',
-      duration: '1 day',
-      price: 'Free',
-      icon: '📱',
-      instructor: 'Ms. Gupta',
-      seats: 50,
-    },
-  ];
+  const fetchWorkshops = () => {
+    setLoading(true);
+    api.get('workshops/')
+      .then(res => {
+        // Filter to show approved workshops
+        const approved = (res.data || []).filter((w: any) => w.status === 'approved' || w.status === 'published');
+        setWorkshops(approved);
+      })
+      .catch(() => setWorkshops([]))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(fetchWorkshops, []);
 
   return (
     <div className="min-h-screen pb-24 pt-20 px-6">
@@ -58,9 +32,25 @@ export default function WorkshopsPage() {
         <p className="text-purple-600">Learn new skills and grow</p>
       </div>
 
+      {/* Loading */}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && workshops.length === 0 && (
+        <div className="text-center py-12">
+          <Award className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+          <p className="text-gray-500">No workshops available right now</p>
+          <p className="text-gray-400 text-sm mt-2">Check back soon!</p>
+        </div>
+      )}
+
       {/* Workshops List */}
       <div className="space-y-4">
-        {workshops.map((workshop, idx) => (
+        {!loading && workshops.map((workshop: any, idx: number) => (
           <motion.div
             key={workshop.id}
             initial={{ opacity: 0, x: -20 }}
@@ -75,10 +65,10 @@ export default function WorkshopsPage() {
                 whileHover={{ scale: 1.2, rotate: 10 }}
                 transition={{ type: 'spring' }}
               >
-                {workshop.icon}
+                💻
               </motion.div>
               <div className="flex-1">
-                <h3 className="text-gray-800 mb-2">{workshop.title}</h3>
+                <h3 className="text-gray-800 mb-2 font-semibold">{workshop.title}</h3>
                 
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-gray-600">
@@ -87,31 +77,44 @@ export default function WorkshopsPage() {
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
                     <Clock className="w-4 h-4 text-cyan-500" />
-                    <span>{workshop.duration}</span>
+                    <span>{workshop.time} ({workshop.durationHours || 2}h)</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Award className="w-4 h-4 text-yellow-500" />
-                    <span>{workshop.instructor}</span>
-                  </div>
+                  {workshop.instructor && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Award className="w-4 h-4 text-yellow-500" />
+                      <span>{workshop.instructor}</span>
+                    </div>
+                  )}
+                  {workshop.location && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <MapPin className="w-4 h-4 text-green-500" />
+                      <span>{workshop.location}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <motion.span 
                       className={`px-4 py-2 rounded-full ${
-                        workshop.price === 'Free' 
+                        !workshop.fee || workshop.fee === 'Free' || workshop.fee === '0'
                           ? 'bg-green-100 text-green-700' 
                           : 'bg-yellow-100 text-yellow-700'
                       }`}
                       whileHover={{ scale: 1.1 }}
                     >
-                      {workshop.price}
+                      {!workshop.fee || workshop.fee === '0' ? 'Free' : workshop.fee}
                     </motion.span>
-                    <span className="text-gray-500">{workshop.seats} seats left</span>
+                    {workshop.maxParticipants && (
+                      <span className="text-gray-500 flex items-center gap-1">
+                        <Users className="w-4 h-4" />
+                        {workshop.maxParticipants} seats
+                      </span>
+                    )}
                   </div>
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                     <Button
-                      onClick={() => setSelectedWorkshop({ name: workshop.title, price: workshop.price })}
+                      onClick={() => setSelectedWorkshop(workshop)}
                       className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 rounded-xl shadow-md"
                     >
                       Register
@@ -128,9 +131,11 @@ export default function WorkshopsPage() {
       <AnimatePresence>
         {selectedWorkshop && (
           <WorkshopRegistrationForm 
-            workshopName={selectedWorkshop.name}
-            price={selectedWorkshop.price}
-            onClose={() => setSelectedWorkshop(null)} 
+            workshopId={selectedWorkshop.id}
+            workshopName={selectedWorkshop.title}
+            price={selectedWorkshop.fee || 'Free'}
+            onClose={() => setSelectedWorkshop(null)}
+            onSuccess={fetchWorkshops}
           />
         )}
       </AnimatePresence>
