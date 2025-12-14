@@ -1,1 +1,0 @@
-web: gunicorn unimitr.wsgi:application --chdir backend
