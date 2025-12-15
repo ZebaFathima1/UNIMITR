@@ -8,12 +8,13 @@ ENV PYTHONUNBUFFERED 1
 # Set work directory
 WORKDIR /app
 
+
 # Install dependencies
-COPY backend/requirements.txt ./requirements.txt
+COPY requirements.txt ./requirements.txt
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy project
-COPY backend/ .
+COPY . .
 
 # Collect static files
 RUN python manage.py collectstatic --noinput

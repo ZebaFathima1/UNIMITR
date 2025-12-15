@@ -14,8 +14,8 @@ from datetime import timedelta
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-insecure-secret')
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'render.com').split(',')
 
 # Path to React build files
 REACT_BUILD_DIR = BASE_DIR / 'staticfiles_build' / 'frontend'
@@ -82,11 +82,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'unimitr.wsgi.application'
 
+import dj_database_url
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(default=os.environ.get('DATABASE_URL', f'sqlite:///{BASE_DIR / "db.sqlite3"}'))
 }
 
 AUTH_PASSWORD_VALIDATORS = []
