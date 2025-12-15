@@ -50,13 +50,16 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# CORS Configuration - Allow all origins since frontend and backend are on same server
+# CORS Configuration - Allow Vercel frontend and local dev
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "http://localhost:3000",  # For development
+    "http://localhost:3000",
+    "https://unimitr.vercel.app",
 ]
 CORS_ALLOW_CREDENTIALS = True
+# For quick testing, you can uncomment the next line (not recommended for production)
+CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = 'unimitr.urls'
 
