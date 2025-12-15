@@ -22,5 +22,5 @@ RUN python manage.py collectstatic --noinput
 # Expose port (Render uses 10000 by default for Docker)
 EXPOSE 10000
 
-# Start server (temporary: run Django system check for debugging)
-CMD ["python", "manage.py", "check"]
+# Start server (production: use Gunicorn)
+CMD ["gunicorn", "unimitr.wsgi:application", "--bind", "0.0.0.0:10000"]
