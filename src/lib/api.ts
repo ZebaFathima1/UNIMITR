@@ -2,14 +2,15 @@ import axios from 'axios';
 
 // Determine API base URL based on environment
 const getApiBaseUrl = () => {
-  // If we're running on the same server (production), use relative URL
+  // Use VITE_API_URL if set (for Vercel/production)
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // Fallbacks for local/dev
   if (typeof window !== 'undefined') {
     const isDev = process.env.NODE_ENV === 'development';
     if (isDev) {
       return 'http://localhost:8000/api';
-    } else {
-      // Production: both frontend and backend on same port
-      return '/api';
     }
   }
   return '/api';
