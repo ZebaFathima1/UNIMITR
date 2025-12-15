@@ -7,6 +7,7 @@ export default defineConfig({
 
   plugins: [react()],
 
+
   preview: {
     host: true,
     allowedHosts: 'all', // ✅ fixes Railway blocked host
